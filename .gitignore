@@ -1,0 +1,6 @@
+*.xlsm
+*.txt
+*.docx
+*.xlsx
+Log*
+*.csv
