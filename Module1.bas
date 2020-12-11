@@ -38,6 +38,7 @@ Sub run()
     Cells.Select
     Selection.ClearContents
     Const cst_dstSheetName As String = "import"
+    Const cst_outputSheetName As String = "list"
     Call getHolidayData
     
     Dim LstRow  As Long
@@ -161,7 +162,7 @@ Sub run()
     Range("A1").Select
     
    
-    Sheets("list").Select
+    Sheets(cst_outputSheetName).Select
     Cells.Select
     Selection.ClearContents
 
@@ -172,7 +173,7 @@ Sub run()
     Range(Selection, ActiveCell.SpecialCells(xlLastCell)).Select
     Selection.Copy
     
-    Sheets("list").Select
+    Sheets(cst_outputSheetName).Select
     Cells.Select
     ActiveSheet.Paste
     
@@ -180,7 +181,7 @@ Sub run()
     Selection.AutoFilter
     Range("A1").Select
 
-    Sheets("list").Select
+    Sheets(cst_outputSheetName).Select
     Cells.EntireColumn.AutoFit
     Range("A1").Select
     
@@ -189,7 +190,7 @@ Sub run()
         "=IF(OR(RC[-10]=""Sat"",RC[-10]=""Sun"",RC[-9]=""Hol"",HOUR(RC[-8])<5,HOUR(RC[-8])>=22),"""",1)"
     Range("L2").Select
     Selection.Copy
-    LstRow = Sheets("list").Cells(Rows.Count, 1).End(xlUp).Row
+    LstRow = Sheets(cst_outputSheetName).Cells(Rows.Count, 1).End(xlUp).Row
     Range("L2:L" & LstRow).Select
     ActiveSheet.Paste
 
@@ -203,7 +204,7 @@ Sub run()
     Selection.AutoFilter Field:=12, Criteria1:="="
     NGLog = WorksheetFunction.Subtotal(3, Columns(1)) - 1
     Range("A1").Select
-
+    Call outputPDF(ThisWorkbook.Worksheets(cst_outputSheetName))
 
     Application.ScreenUpdating = True
     Application.DisplayAlerts = True
@@ -260,4 +261,15 @@ FINL_L:
     holidayWB.Close savechanges:=False
 End Sub
 
+Private Sub outputPDF(outputWS As Worksheet)
+    Dim outputName As String
+    outputName = Replace(outputWS.Parent.Name, ".xlsm", ".pdf")
+    With outputWS.PageSetup
+        .Orientation = xlLandscape
+        .Zoom = False
+        .FitToPagesWide = 1
+        .FitToPagesTall = 1
+    End With
+    outputWS.ExportAsFixedFormat Type:=xlTypePDF, Filename:="¥¥aronas¥Archives¥Log¥DC入退室¥" & outputName
+End Sub
 
