@@ -1,4 +1,5 @@
 Attribute VB_Name = "Module1"
+Const cst_holidaySheetName As String = "holiday"
 Public Function getInputDir() As String
 
     '処理対象月をYYYYMMの形式で指定してください。空白ならば処理日の前月になります。
@@ -36,13 +37,15 @@ Sub run()
     
     Cells.Select
     Selection.ClearContents
+    Const cst_dstSheetName As String = "import"
+    Call getHolidayData
     
     Dim LstRow  As Long
     Dim LstRow1 As Long
     Dim LstRow2 As Long
     
     Dim dstSheet As Worksheet
-    Set dstSheet = ThisWorkbook.Worksheets(2)
+    Set dstSheet = ThisWorkbook.Worksheets(cst_dstSheetName)
 
     Dim srcBook As Workbook
     Dim srcSheet As Worksheet
@@ -50,15 +53,14 @@ Sub run()
     Dim buf As String
     Dim inputPath As String
     inputPath = getInputDir()
-    'buf = Dir(ActiveWorkbook.Path & "¥*.csv")
     buf = Dir(inputPath & "¥*.csv")
 
     Dim i As Long
+    Dim j As Long
     i = 0
     j = 0
     Do While buf <> ""
         i = i + 1
-'        Set srcBook = Workbooks.Open(ActiveWorkbook.Path + "¥" + buf)
         Set srcBook = Workbooks.Open(inputPath + "¥" + buf)
         Set srcSheet = srcBook.Worksheets(1)
         srcSheet.Select
@@ -79,11 +81,11 @@ Sub run()
         buf = Dir()
     Loop
     
-    ActiveWorkbook.Worksheets("import").Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets(cst_dstSheetName).Sort.SortFields.Clear
     LstRow2 = dstSheet.Cells(Rows.Count, 1).End(xlUp).Row
-    ActiveWorkbook.Worksheets("import").Sort.SortFields.Add Key:=Range("A3:A" & LstRow2) _
+    ActiveWorkbook.Worksheets(cst_dstSheetName).Sort.SortFields.Add Key:=Range("A3:A" & LstRow2) _
         , SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-    With ActiveWorkbook.Worksheets("import").Sort
+    With ActiveWorkbook.Worksheets(cst_dstSheetName).Sort
         .SetRange Range("A2:H" & LstRow2)
         .Header = xlYes
         .MatchCase = False
@@ -112,7 +114,7 @@ Sub run()
     Cells.Select
     Selection.ClearContents
     
-    Sheets("import").Select
+    Sheets(cst_dstSheetName).Select
     Range("A2").Select
     Range(Selection, ActiveCell.SpecialCells(xlLastCell)).Select
     Selection.Copy
@@ -216,6 +218,46 @@ Sub run()
 
 End Sub
 
+Private Function addWorksheet(targetWorkbook As Workbook, sheetname As String, Optional copyfromSheet As Worksheet = Nothing) As Worksheet
+    Dim outputSheet As Worksheet
+    ' Delete outputsheet
+    On Error Resume Next
+    Set outputSheet = targetWorkbook.Worksheets(sheetname)
+    On Error GoTo 0
+    If Not outputSheet Is Nothing Then
+        outputSheet.Delete
+    End If
+    If Not copyfromSheet Is Nothing Then
+        copyfromSheet.Copy after:=copyfromSheet
+    Else
+        ThisWorkbook.Worksheets.Add
+    End If
+    ActiveSheet.Name = sheetname
+    Set addWorksheet = ThisWorkbook.Worksheets(sheetname)
+End Function
 
+Public Sub getHolidayData()
+    Const cst_holidayFolderName As String = "祝日マスタ"
+    Const cst_holidayFileName As String = "祝日入力シート（事務局用）.xlsx"
+    Const cst_copyFromSheetName As String = "祝日"
+    Dim inputPath As String
+    Dim i As Integer
+    Dim holidayWB As Workbook
+    Dim copyFromWS As Worksheet
+    Dim copyToWS As Worksheet
+    Set copyToWS = addWorksheet(ThisWorkbook, cst_holidaySheetName)
+    inputPath = ThisWorkbook.Path
+    For i = 0 To 1
+        inputPath = Left(inputPath, InStrRev(inputPath, "¥") - 1)
+    Next i
+    inputPath = inputPath & "¥" & cst_holidayFolderName & "¥" & cst_holidayFileName
+    On Error GoTo FINL_L
+    Workbooks.Open Filename:=inputPath
+    Set holidayWB = ActiveWorkbook
+    Set copyFromWS = holidayWB.Worksheets(cst_copyFromSheetName)
+    copyFromWS.Cells.Copy (copyToWS.Cells(1, 1))
+FINL_L:
+    holidayWB.Close savechanges:=False
+End Sub
 
 
